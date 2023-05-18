@@ -150,16 +150,18 @@ def run(args: argparse.Namespace) -> None:
     Path(args.result_file).mkdir(parents=True, exist_ok=True)
     df_metric.to_csv(Path(args.result_file, 'results_per_epoch.csv'))
 
+
+
 def get_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description='Hyperparams')
 
     parser.add_argument('--dataset', type=str,
-                        default='/network/lustre/iss02/aramis/users/rosana.eljurdi/Lymphoma-defaced-brain-mni')
+                        default='/Users/rosana.eljurdi/Datasets/Lymphoma-defaced-brain-mni')
     parser.add_argument('--manual_seg', type=str,
                         default='derivatives/manual_segm')
     parser.add_argument('--participant_tsv', type=str,
                         default='participants_.tsv')
-    parser.add_argument("--result_file", type=str, default='/network/lustre/iss02/aramis/users/rosana.eljurdi/LymphSeg/Results')
+    parser.add_argument("--result_file", type=str, default='/Users/rosana.eljurdi/PycharmProjects/LymphSeg1/Results')
     parser.add_argument("--workdir", type=str,
                         default='where-to-save-results')
     parser.add_argument('--batch_size', type=int, default=1)
@@ -167,7 +169,7 @@ def get_args() -> argparse.Namespace:
                         default=True)
 
     parser.add_argument('--split_file', type=str,
-                        default="/network/lustre/iss02/aramis/users/rosana.eljurdi/LymphSeg/train_description.json")
+                        default="/Users/rosana.eljurdi/PycharmProjects/LymphSeg1/train_description.json")
 
 
     parser.add_argument('--create_splits', type = bool, default = False)
