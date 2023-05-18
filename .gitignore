@@ -4,6 +4,7 @@ Results/*
 Scratch/*
 run.sl
 Get_Args.py
+Training/Get_Args.py
 train_description.json
 # Byte-compiled / optimized / DLL files
 __pycache__/
