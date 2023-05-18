@@ -18,7 +18,7 @@ spatial_transforms = {
     tio.RandomGhosting(): 0.8,
 }
 #tio.ToCanonical(),
-transforms = tio.Compose([tio.ZNormalization(),tio.CropOrPad(target_shape=(192, 224, 192)),])
+transforms = tio.Compose([tio.ZNormalization(),tio.EnsureShapeMultiple(2**2),])
 
 # to figure out !!!
 
@@ -122,8 +122,8 @@ class Lymphoma_Dataset:
 
             subject = tio.Subject(mri=tio.ScalarImage(patient_path),
                                   gt=tio.LabelMap(label_path),
-                                  idd=Path(patient_path).parts[8],
-                                  partition=self.participants_tsv['partition'][Path(patient_path).parts[8]], )
+                                  idd=Path(patient_path).parts[5],
+                                  partition=self.participants_tsv['partition'][Path(patient_path).parts[5]], )
             participants.append(subject)
 
         return participants
@@ -148,36 +148,3 @@ class Lymphoma_Dataset:
 
 
 
-
-
-
-
-
-
-
-
-
-
-def Split_dataset():
-    pass
-
-
-'''
-lymphdata = Lymphoma_dataset()
-data_loader = DataLoader(lymphdata, batch_size=1, shuffle=False, num_workers=0)
-
-for i, ensemble in enumerate(zip(lymphdata, lymphdata.dry_iter())):
-    if i ==20:
-        break
-    data = ensemble[0]
-    data_raw = ensemble[1]
-
-
-    #data['mri'].save(data['mri']['path'].replace('Lymphoma-defaced-brain-oriented', 'Lymphoma-defaced-brain-orientedtiomni'))
-    #data['gt'].save(data['gt']['path'].replace('Lymphoma-defaced-brain-oriented', 'Lymphoma-defaced-brain-orientedtiomni'))
-    #print(data['mri']['stem'], data['mri'].orientation, data['gt'].orientation)
-
-    data.plot()
-
-    print(i, data_raw['mri']['stem'], data_raw['mri'].shape, data['mri'].shape, data['gt'].shape)
-'''

@@ -17,8 +17,9 @@ import numpy as np
 import pandas as pd
 import torch.nn.functional as F
 from Training import metrics
-import os
-from models.modified3DUnet import Modified3DUNet
+from monai.networks.nets import UNet
+from monai.losses.dice import DiceLoss
+
 def setup(args) :
     print(">>> Setting up")
     # configuring GPU settings:
@@ -26,21 +27,32 @@ def setup(args) :
     device = torch.device("cpu") if cpu else torch.device("cuda")
     # Data loaders:
     # network
-    model = Modified3DUNet(1, 1).to(device)
+    model = network = UNet(
+    spatial_dims=3,
+    in_channels=1,
+    out_channels=1,
+    channels=(8, 16),
+    strides=(1,),
+    kernel_size=3,
+    up_kernel_size=1,
+    num_res_units=1,
+    norm=("localresponse", {"size": 1}),
+    ).to(device)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001, betas=(0.9, 0.99), amsgrad=False)
-    criterion = nn.CrossEntropyLoss()
+    criterion = DiceLoss(reduction='none')
     bi_criterion = ls.BorderIrregularityLoss()
     loss_fns = criterion
     print(model, optimizer, loss_fns, device)
     return model, optimizer, loss_fns, device
 
 def do_epoch(mode: str, model: Any, device: Any, loader: DataLoader, epc: int,
-             loss_fnc:Any, optimizer : Any = None) -> Tuple[float, float]:
+             loss_fnc:Any, optimizer : Any = None, debug: bool = True) -> Tuple[float, float]:
 
     assert mode in ['train', 'val']
     log_loss_per_epoch, metrics_per_epoch = 0, []
     if mode == 'train':
+
         model.train()
         desc = f">> Training   ({epc})"
     elif mode == 'val':
@@ -50,6 +62,8 @@ def do_epoch(mode: str, model: Any, device: Any, loader: DataLoader, epc: int,
     total_iteration , total_images = len(loader), len(loader.dataset)
     Dice_metric = 0
     for j, batch in tqdm(enumerate(loader)):
+        if debug == True and j == 5:
+            break
         inputs = batch['mri']['data'].type(torch.float)
         labels = batch['gt']['data'].type(torch.float)
 
@@ -71,7 +85,7 @@ def do_epoch(mode: str, model: Any, device: Any, loader: DataLoader, epc: int,
 
 
         #print(inputs.shape,labels.shape, prediction.shape)
-        loss = loss_fnc(labels.squeeze().to(device), prediction.squeeze())
+        loss = loss_fnc(labels.to(device), pred_probs)
         #print(loss)
 
         if optimizer:
@@ -87,7 +101,7 @@ def do_epoch(mode: str, model: Any, device: Any, loader: DataLoader, epc: int,
         Dice_metric += np.sum(metrics.dice_coef_3d(groundtruth_bool, predictions_bool))
 
     metrics_per_epoch = Dice_metric/total_images
-    print(f'Epoch {epc}, Loss: {loss:.4f}, Dice : {Dice_metric:.4f}')
+    print(f'Epoch {epc}-{mode}, Loss: {float(loss.detach().numpy()):.4f}, Dice : {metrics_per_epoch:.4f}')
     return log_loss_per_epoch, metrics_per_epoch, model
 
 def run(args: argparse.Namespace) -> None:
@@ -97,15 +111,15 @@ def run(args: argparse.Namespace) -> None:
     P_TSV : str=args.participant_tsv
     shuffle: bool=args.shuffle
     JSON_FILE : str = args.split_file
-    create_splits: str = args.create_splits 
-
-
+    create_splits: str = args.create_splits
+    debug : bool = args.debug
     model, optimizer, loss_func, device = setup(args)
+
     if create_splits == True:
         Lymphoma_CREATESPLITS_Dataset(MRI_DATA, GT_DATA, P_TSV)
     lymphdataset = Lymphoma_Dataset(MRI_DATA, GT_DATA, P_TSV, JSON_FILE)
     lymphdatatrain = lymphdataset.train_dataset
-    lymphdatatest = lymphdataset.test_dataset
+    lymphdatatest = lymphdataset.val_dataset
 
     # Getting Loaders
 
@@ -123,10 +137,10 @@ def run(args: argparse.Namespace) -> None:
     tstall_losslog: Tensor = torch.zeros(num_epochs, dtype=torch.float32, device='cpu')
 
     # Train the model
-    for epoch in range(num_epochs):
+    for epoch in tqdm(range(num_epochs)):
         trall_losslog[epoch], trall_dice[epoch], model = do_epoch(mode='train',model= model,
                  device = device,loader= training_loader,
-                epc = epoch,loss_fnc = loss_func, optimizer = optimizer)
+                epc = epoch,loss_fnc = loss_func, optimizer = optimizer, debug =debug )
 
         with torch.no_grad():
             tstall_losslog[epoch], tstall_dice[epoch], _ = do_epoch(mode='val', model=model,
@@ -152,30 +166,7 @@ def run(args: argparse.Namespace) -> None:
 
 
 
-def get_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description='Hyperparams')
-
-    parser.add_argument('--dataset', type=str,
-                        default='/Users/rosana.eljurdi/Datasets/Lymphoma-defaced-brain-mni')
-    parser.add_argument('--manual_seg', type=str,
-                        default='derivatives/manual_segm')
-    parser.add_argument('--participant_tsv', type=str,
-                        default='participants_.tsv')
-    parser.add_argument("--result_file", type=str, default='/Users/rosana.eljurdi/PycharmProjects/LymphSeg1/Results')
-    parser.add_argument("--workdir", type=str,
-                        default='where-to-save-results')
-    parser.add_argument('--batch_size', type=int, default=1)
-    parser.add_argument('--shuffle', type=str,
-                        default=True)
-
-    parser.add_argument('--split_file', type=str,
-                        default="/Users/rosana.eljurdi/PycharmProjects/LymphSeg1/train_description.json")
-
-
-    parser.add_argument('--create_splits', type = bool, default = False)
-    args = parser.parse_args()
-    print(args)
-    return args
+import Get_Args
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
@@ -183,6 +174,6 @@ if __name__ == '__main__':
     seed = 3
     torch.manual_seed(seed)
     
-    run(get_args())
+    run(Get_Args.get_args())
 
 
