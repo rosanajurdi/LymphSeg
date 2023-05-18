@@ -18,7 +18,7 @@ spatial_transforms = {
     tio.RandomGhosting(): 0.8,
 }
 #tio.ToCanonical(),
-transforms = tio.Compose([tio.ZNormalization(),])
+transforms = tio.Compose([tio.ZNormalization(),tio.CropOrPad(target_shape=(192, 224, 192)),])
 
 # to figure out !!!
 
@@ -110,7 +110,7 @@ class Lymphoma_Dataset:
 
 
 
-        print("Data setup:", len(self.train_dataset), len(self.val_dataset), len(self.test_dataset))
+        print("Data setup: training MRIs : {}, validation MRIs : {}, testing MRIs: {}".format(len(self.train_dataset), len(self.val_dataset), len(self.test_dataset)))
 
 
 
@@ -122,8 +122,8 @@ class Lymphoma_Dataset:
 
             subject = tio.Subject(mri=tio.ScalarImage(patient_path),
                                   gt=tio.LabelMap(label_path),
-                                  idd=Path(patient_path).parts[5],
-                                  partition=self.participants_tsv['partition'][Path(patient_path).parts[5]], )
+                                  idd=Path(patient_path).parts[8],
+                                  partition=self.participants_tsv['partition'][Path(patient_path).parts[8]], )
             participants.append(subject)
 
         return participants
@@ -132,7 +132,7 @@ class Lymphoma_Dataset:
         seed = 3
         torch.manual_seed(seed)
         n = len(self.train_participants)
-        r = np.int(0.8 * n)
+        r = np.int32(0.8 * n)
         self.traindata, self.valdata = random_split(self.train_participants, [r, n - r])
         train_dataset = tio.SubjectsDataset(self.traindata, transform=transform)
         val_dataset = tio.SubjectsDataset(self.valdata, transform=transform)

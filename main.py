@@ -18,16 +18,22 @@ import pandas as pd
 import torch.nn.functional as F
 from Training import metrics
 import os
+from models.modified3DUnet import Modified3DUNet
 def setup(args) :
     print(">>> Setting up")
+    # configuring GPU settings:
+    cpu: bool = not torch.cuda.is_available()
+    device = torch.device("cpu") if cpu else torch.device("cuda")
     # Data loaders:
     # network
-    model = networks.UNet3D(1, 1)
+    model = Modified3DUNet(1, 1).to(device)
+
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001, betas=(0.9, 0.99), amsgrad=False)
     criterion = nn.CrossEntropyLoss()
     bi_criterion = ls.BorderIrregularityLoss()
     loss_fns = criterion
-    return model, optimizer, loss_fns
+    print(model, optimizer, loss_fns, device)
+    return model, optimizer, loss_fns, device
 
 def do_epoch(mode: str, model: Any, device: Any, loader: DataLoader, epc: int,
              loss_fnc:Any, optimizer : Any = None) -> Tuple[float, float]:
@@ -51,13 +57,21 @@ def do_epoch(mode: str, model: Any, device: Any, loader: DataLoader, epc: int,
             optimizer.zero_grad()
 
         # forward pass
-        prediction = model(inputs)
+        #print(inputs.shape)
+        #passs = False
+        
+        # Checking the space:
+        #print(inputs.shape)
+        prediction = model(inputs.to(device))
+        
         pred_probs: Tensor = F.sigmoid(prediction)
         precition_map : Tensor = pred_probs.round()
 
         #print(batch['mri']['stem'], inputs.shape, prediction.shape)
 
-        loss = loss_fnc(labels.squeeze(), prediction.squeeze())
+
+        #print(inputs.shape,labels.shape, prediction.shape)
+        loss = loss_fnc(labels.squeeze().to(device), prediction.squeeze())
         #print(loss)
 
         if optimizer:
@@ -65,14 +79,15 @@ def do_epoch(mode: str, model: Any, device: Any, loader: DataLoader, epc: int,
             optimizer.step()
 
         log_loss_per_epoch +=  loss.detach()
-        predictions_bool = utils.convert_to_bool(precition_map.detach())
-        groundtruth_bool = utils.convert_to_bool(labels.detach())
+        predictions_bool = utils.convert_to_bool(precition_map.detach().cpu().numpy())
+        groundtruth_bool = utils.convert_to_bool(labels.detach().cpu().numpy())
 
         # the dice is added over all the data and the mean is obtained !
-        Dice_metric += np.sum(metrics.dice_coef_3d(groundtruth_bool, predictions_bool.detach()))
+
+        Dice_metric += np.sum(metrics.dice_coef_3d(groundtruth_bool, predictions_bool))
 
     metrics_per_epoch = Dice_metric/total_images
-    #print(f'Epoch [{epoch + 1}/{num_epochs}], Loss: {epoch_loss:.4f}')
+    print(f'Epoch {epc}, Loss: {loss:.4f}, Dice : {Dice_metric:.4f}')
     return log_loss_per_epoch, metrics_per_epoch, model
 
 def run(args: argparse.Namespace) -> None:
@@ -82,10 +97,12 @@ def run(args: argparse.Namespace) -> None:
     P_TSV : str=args.participant_tsv
     shuffle: bool=args.shuffle
     JSON_FILE : str = args.split_file
+    create_splits: str = args.create_splits 
 
 
-    model, optimizer, loss_func = setup(args)
-    #Lymphoma_CREATESPLITS_Dataset(MRI_DATA, GT_DATA, P_TSV)
+    model, optimizer, loss_func, device = setup(args)
+    if create_splits == True:
+        Lymphoma_CREATESPLITS_Dataset(MRI_DATA, GT_DATA, P_TSV)
     lymphdataset = Lymphoma_Dataset(MRI_DATA, GT_DATA, P_TSV, JSON_FILE)
     lymphdatatrain = lymphdataset.train_dataset
     lymphdatatest = lymphdataset.test_dataset
@@ -95,7 +112,7 @@ def run(args: argparse.Namespace) -> None:
     training_loader = DataLoader(lymphdatatrain, batch_size=args.batch_size, num_workers=1)
     testing_loader = DataLoader(lymphdatatest, batch_size = 1, num_workers=1)
 
-    print("training on {} MRIs".format(training_loader.dataset))
+    print("training on {} MRIs".format(len(training_loader.dataset)))
 
     # initializing weights
     num_epochs = 10
@@ -108,12 +125,12 @@ def run(args: argparse.Namespace) -> None:
     # Train the model
     for epoch in range(num_epochs):
         trall_losslog[epoch], trall_dice[epoch], model = do_epoch(mode='train',model= model,
-                 device = args.device,loader= training_loader,
+                 device = device,loader= training_loader,
                 epc = epoch,loss_fnc = loss_func, optimizer = optimizer)
 
         with torch.no_grad():
             tstall_losslog[epoch], tstall_dice[epoch], _ = do_epoch(mode='val', model=model,
-                                                           device=args.device, loader=testing_loader,
+                                                           device=device, loader=testing_loader,
                                                            epc=epoch, loss_fnc=loss_func, optimizer=None)
 
         if tstall_losslog[-1] < tstall_losslog[-2]:
@@ -137,12 +154,12 @@ def get_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description='Hyperparams')
 
     parser.add_argument('--dataset', type=str,
-                        default='/Users/rosana.eljurdi/Datasets/Lymphoma-defaced-brain-mni')
+                        default='/network/lustre/iss02/aramis/users/rosana.eljurdi/Lymphoma-defaced-brain-mni')
     parser.add_argument('--manual_seg', type=str,
                         default='derivatives/manual_segm')
     parser.add_argument('--participant_tsv', type=str,
                         default='participants_.tsv')
-    parser.add_argument("--result_file", type=str, default='/Users/rosana.eljurdi/PycharmProjects/LymphSeg1/Results')
+    parser.add_argument("--result_file", type=str, default='/network/lustre/iss02/aramis/users/rosana.eljurdi/LymphSeg/Results')
     parser.add_argument("--workdir", type=str,
                         default='where-to-save-results')
     parser.add_argument('--batch_size', type=int, default=1)
@@ -150,9 +167,10 @@ def get_args() -> argparse.Namespace:
                         default=True)
 
     parser.add_argument('--split_file', type=str,
-                        default="/Users/rosana.eljurdi/PycharmProjects/LymphSeg1/train_description.json")
+                        default="/network/lustre/iss02/aramis/users/rosana.eljurdi/LymphSeg/train_description.json")
 
-    parser.add_argument('--device', type = str, default = 'cpu')
+
+    parser.add_argument('--create_splits', type = bool, default = False)
     args = parser.parse_args()
     print(args)
     return args
@@ -162,8 +180,7 @@ if __name__ == '__main__':
 
     seed = 3
     torch.manual_seed(seed)
+    
     run(get_args())
 
 
-
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
