@@ -2,7 +2,8 @@
 # My ignores
 Results/*
 Scratch/*
-run.sl 
+run.sl
+Get_Args.py
 train_description.json
 # Byte-compiled / optimized / DLL files
 __pycache__/
