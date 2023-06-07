@@ -23,6 +23,16 @@ __pycache__/
 *.svg
 *.png
 *.pdf
+
+# Ignore image files
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.bmp
+
+# Ignore image folders
+**/images/
 # Distribution / packaging
 .Python
 build/
