@@ -3,7 +3,9 @@
 Results/*
 Scratch/*
 images/*
- Border_Irregularity_Index/images/*
+
+Border_Irregularity_Index/images/*
+Border_Irregularity_Index/images_p/*
 Inference/sub-*
 run.sl
 Get_Args.py
