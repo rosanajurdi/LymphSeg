@@ -2,16 +2,20 @@
 from typing import List
 
 import torch
-import numbers
-import math
 from torch import Tensor, einsum
-from Training_3D.utils import simplex, one_hot
+from ATraining_3D.utils import simplex
 import torchio as tio
-from Training_3D.Smoothing_Module import GaussianSmoothing
+from Border_Irregularity_Index.Smoothing_Module import GaussianSmoothing
+
+
+
+
+
+"""
 def SmoothBoundary(x, thresh_width=5):
     '''
-    Differenciable aproximation of morphological skelitonization operaton
-    thresh_width - maximal expected width of vessel
+    Boundary smoothing module
+    returns the smoothed groundtruth
     '''
 
     GS = GaussianSmoothing(1, (3, 3), 100, 2)
@@ -31,13 +35,11 @@ def SmoothBoundary(x, thresh_width=5):
         # plt.imshow(x[0][0]*1.00)
 
     return x
-
+"""
 class BorderIrregularityLoss():
     def __init__(self):
         # Self.idc is used to filter out some classes of the target mask. Use fancy indexing
-        pass
-
-
+        self.idc = 1
     def __call__(self, net_output: Tensor, target: Tensor) -> Tensor:
         """
         net_output: (batch_size, 2, x,y,z)
@@ -54,7 +56,7 @@ class BorderIrregularityLoss():
         GT_H_index = 2 * (gt * smooth) / (gt + smooth - gt * smooth + 10e-7)
         borderI_error = (pred_H_index.mean(axis=(2, 3)) - GT_H_index.mean(axis=(2, 3))) ** 2
 
-        hd_loss = 10 * borderI_error.sum()
+        hd_loss = borderI_error.sum()
 
         return hd_loss
 

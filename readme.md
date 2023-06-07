@@ -6,7 +6,7 @@ This repository includes the code for the lymphoma Segmentation Project (lymphSe
 the data was registered via an fsl tool with pydra and the following template. 
 The code for the registration can be found in 	[Registration.ipynb](Data_Curation/Registration.ipynb)
 
-
+<<to be documented >>
 Lymphoma BIDS Format (still missing 3 patients from P2 due to issues- ask lucia for new annotations) 
 ```
 Lymphoma BIDS Format  (still missing 3 patients from P2 due to issues- ask lucia for new annotations)
@@ -38,15 +38,17 @@ The meta-data for the entire lymphoma dataset could be found in
 extracted from the dicom files and provided by the medical experts while annotating. 
 The dataset was split into 4 parts ( (D1) (D2, D3, D4)) according to two createria: the difficulty of the segmentation and the presence of the artefact. D1 refers to clean and easy segmentation, D2 refers to easy  with artefacts. D3 refers tonot easy without artefacts and D4 refers to not easy with artefacts. The classification of the task into easy vs hard was done by a medical expert. To generate the training and testing data, we use the following percentage partitions 70% training and 30% testing. We apply these ratios to each partition 1 and partition 3 representing the MRI data without artefacts (both hard and easy). A third dataset of artefacts was left out as the second testing set. 
 
-## systematic Quality Control
-
 
 
 
 ## Splitting the dataset 
 via  [Lymphoma_CREATESPLITS_Dataset](/Users/rosana.eljurdi/PycharmProjects/LymphSeg1/dataloader.py). 
 
+a train_description.json file is generated with the corresponding train, validation, test and testart datasets. 
 
+## Converting to 2D 
+
+Extract_slices.py for extracting slices and saving them in .npy files
 
 ## Training
 
@@ -54,11 +56,10 @@ via  [Lymphoma_CREATESPLITS_Dataset](/Users/rosana.eljurdi/PycharmProjects/Lymph
 
 ### 3D Unet model
 
-All your files and folders are presented as a tree in the file explorer. You can switch from one to another by clicking a file in the tree.
 
 
 ### Inference
-
+This script [inference.py] will compute the 3d predictions of each patient.
 
 ## Rename a file
 

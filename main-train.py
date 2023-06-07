@@ -4,19 +4,19 @@ from functools import partial
 from typing import Any, Callable, List, Tuple
 from pathlib import Path
 import torch
-from Training import utils
+from ATraining_3D import utils
 import nibabel as nb
 import torch.nn as nn
 from dataloader import Lymphoma_Dataset, Lymphoma_CREATESPLITS_Dataset
 from torch.utils.data import DataLoader
-from Training import networks
-import Training.losses as ls
+from ATraining_3D import networks
+import ATraining_3D.losses as ls
 from torch import Tensor
 from tqdm import tqdm
 import numpy as np
 import pandas as pd
 import torch.nn.functional as F
-from Training import metrics
+from ATraining_3D import metrics
 from monai.networks.nets import UNet
 from monai.losses.dice import DiceLoss
 
