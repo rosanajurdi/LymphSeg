@@ -7,6 +7,7 @@ images/*
 Border_Irregularity_Index/images/*
 Border_Irregularity_Index/images_p/*
 Inference/sub-*
+ Border_Irregularity_Index/*.svg
 run.sl
 Get_Args.py
 ATraining_3D/Get_Args.py
@@ -19,7 +20,9 @@ __pycache__/
 
 # C extensions
 *.so
-
+*.svg
+*.png
+*.pdf
 # Distribution / packaging
 .Python
 build/
