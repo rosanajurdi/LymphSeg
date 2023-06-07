@@ -5,9 +5,9 @@ import torch
 import numbers
 import math
 from torch import Tensor, einsum
-from Training.utils import simplex, one_hot
+from Training_3D.utils import simplex, one_hot
 import torchio as tio
-from Training.Smoothing_Module import GaussianSmoothing
+from Training_3D.Smoothing_Module import GaussianSmoothing
 def SmoothBoundary(x, thresh_width=5):
     '''
     Differenciable aproximation of morphological skelitonization operaton

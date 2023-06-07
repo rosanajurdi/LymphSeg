@@ -2,10 +2,13 @@
 # My ignores
 Results/*
 Scratch/*
+images/*
+ Border_Irregularity_Index/images/*
+Inference/sub-*
 run.sl
 Get_Args.py
-Training/Get_Args.py
-train_description.json
+ATraining_3D/Get_Args.py
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
